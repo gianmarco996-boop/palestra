@@ -1,0 +1,76 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Home</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="page-shell">
+    <ion-card class="hero-card">
+      <div class="hero-header">
+        <div>
+          <p class="eyebrow">Gym tracker</p>
+          <h2>Inizia oggi</h2>
+        </div>
+      </div>
+
+      <p class="muted">Scheda prevista: {{ templates[0]?.name ?? 'Nessuna scheda salvata' }}</p>
+      <ion-button expand="block" color="warning" (click)="goToWorkout()">Inizia allenamento</ion-button>
+    </ion-card>
+
+    <div class="stats-grid">
+      <ion-card>
+        <ion-icon name="calendar-outline"></ion-icon>
+        <div>
+          <strong>{{ completedSessionsThisWeek }}</strong>
+          <small>Settimana</small>
+        </div>
+      </ion-card>
+
+      <ion-card>
+        <ion-icon name="barbell-outline"></ion-icon>
+        <div>
+          <strong>{{ totalVolume }} kg</strong>
+          <small>Volume</small>
+        </div>
+      </ion-card>
+
+      <ion-card>
+        <ion-icon name="fitness-outline"></ion-icon>
+        <div>
+          <strong>{{ exercises.length }}</strong>
+          <small>Esercizi</small>
+        </div>
+      </ion-card>
+    </div>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-label>Ultimo allenamento</ion-label>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="summary-row">
+          <span>{{ latestSession ? latestSession.name : 'Nessun allenamento registrato' }}</span>
+          <span>{{ latestSession ? latestSession.sets.length : 0 }} serie</span>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-label>Dettaglio schede</ion-label>
+      </ion-card-header>
+      <ion-list>
+        @for (template of templates; track template.id) {
+        <ion-item>
+          <ion-label>
+            <h3>{{ template.name }}</h3>
+            <p>{{ template.description }}</p>
+          </ion-label>
+          <ion-badge color="warning">{{ template.exercises.length }}</ion-badge>
+        </ion-item>
+        }
+      </ion-list>
+    </ion-card>
+  </div>
+</ion-content>

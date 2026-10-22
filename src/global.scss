@@ -35,3 +35,93 @@
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
+
+:root {
+  --ion-background-color: #101114;
+  --ion-background-color-rgb: 16, 17, 20;
+  --ion-text-color: #F5F5F5;
+  --ion-text-color-rgb: 245, 245, 245;
+  --ion-toolbar-background: #1A1B20;
+  --ion-item-background: #1A1B20;
+  --ion-color-primary: #FFD166;
+  --ion-color-primary-rgb: 255, 209, 102;
+  --ion-color-primary-contrast: #101114;
+  --ion-color-warning: #FFD166;
+  --ion-color-warning-rgb: 255, 209, 102;
+  --ion-color-success: #4caf50;
+}
+
+body, ion-app, ion-content {
+  background: #101114;
+  color: #F5F5F5;
+}
+
+ion-app {
+  color-scheme: dark;
+}
+
+ion-card {
+  --background: #1A1B20;
+  --color: #F5F5F5;
+  min-width: 0;
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 18px;
+}
+
+ion-toolbar {
+  --background: #1A1B20;
+  --color: #F5F5F5;
+}
+
+ion-button {
+  --border-radius: 14px;
+}
+
+ion-label,
+ion-input,
+ion-select,
+ion-textarea,
+ion-item {
+  --color: #F5F5F5;
+}
+
+ion-item {
+  --background: transparent;
+}
+
+ion-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+ion-card h2,
+ion-card h3,
+ion-card p {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+
+ion-action-sheet {
+  --background: #1A1B20;
+  --button-background: #1A1B20;
+  --button-background-activated: #292B32;
+  --button-color: #F5F5F5;
+  --color: #F5F5F5;
+}
+
+ion-alert,
+ion-popover,
+ion-modal {
+  --background: #1A1B20;
+  --color: #F5F5F5;
+}
+
+ion-alert {
+  --ion-text-color: #F5F5F5;
+}
+
+ion-content::part(scroll) {
+  overscroll-behavior-y: contain;
+}

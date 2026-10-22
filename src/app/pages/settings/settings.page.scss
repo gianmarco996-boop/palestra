@@ -1,0 +1,19 @@
+.page-shell {
+  padding: 16px;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.status-text {
+  margin-top: 10px;
+  color: #A5A7AE;
+}
+
+ion-item {
+  --background: transparent;
+  --border-color: rgba(255, 255, 255, 0.08);
+}

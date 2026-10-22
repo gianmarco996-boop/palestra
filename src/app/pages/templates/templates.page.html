@@ -1,0 +1,246 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Schede</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page-shell">
+    <ion-card>
+      <ion-card-header>
+        <ion-label>Crea scheda personale</ion-label>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-label position="stacked">Nome scheda</ion-label>
+          <ion-input [(ngModel)]="templateName" placeholder="Nome"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Descrizione</ion-label>
+          <ion-textarea [(ngModel)]="templateDescription" autoGrow="true"></ion-textarea>
+        </ion-item>
+        <ion-button expand="block" color="warning" (click)="createTemplate()">Crea scheda</ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-label>Crea esercizio</ion-label>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-label position="stacked">Nome esercizio</ion-label>
+          <ion-input [(ngModel)]="exerciseName" placeholder="Es. Chest press"></ion-input>
+        </ion-item>
+        <div class="form-grid">
+          <ion-item>
+            <ion-label position="stacked">Gruppo muscolare</ion-label>
+            <ion-input [(ngModel)]="exerciseMuscleGroup" placeholder="Petto"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Attrezzatura</ion-label>
+            <ion-input [(ngModel)]="exerciseEquipment" placeholder="Macchina"></ion-input>
+          </ion-item>
+        </div>
+        <ion-item>
+          <ion-label position="stacked">Modalità di carico</ion-label>
+          <ion-select [(ngModel)]="exerciseLoadMode" interface="action-sheet">
+            @for (mode of loadModes; track mode.value) {
+            <ion-select-option [value]="mode.value">{{ mode.label }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Aggiungi alla scheda</ion-label>
+          <ion-select [(ngModel)]="selectedTemplateId" interface="action-sheet" placeholder="Seleziona scheda">
+            @for (template of templates; track template.id) {
+            <ion-select-option [value]="template.id">{{ template.name }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+        <ion-button expand="block" color="warning" [disabled]="!selectedTemplateId" (click)="createExercise()">
+          Crea e aggiungi alla scheda
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-label>Aggiungi dall’archivio</ion-label>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-label position="stacked">Scheda</ion-label>
+          <ion-select [(ngModel)]="selectedTemplateId" interface="action-sheet">
+            @for (template of templates; track template.id) {
+            <ion-select-option [value]="template.id">{{ template.name }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+        <ion-searchbar [(ngModel)]="exerciseSearch" placeholder="Cerca esercizio"></ion-searchbar>
+        <ion-item>
+          <ion-label position="stacked">Esercizio</ion-label>
+          <ion-select [(ngModel)]="selectedArchiveExerciseId" interface="action-sheet" placeholder="Seleziona esercizio">
+            @for (exercise of filteredExercises; track exercise.id) {
+            <ion-select-option [value]="exercise.id">
+              {{ exercise.name }} · {{ exercise.muscleGroup }}
+            </ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+        <ion-button expand="block" fill="outline" color="warning" [disabled]="!selectedTemplateId || !selectedArchiveExerciseId" (click)="addExistingExercise()">
+          Aggiungi esercizio alla scheda
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    @if (formMessage) {
+    <p class="form-message" role="status">{{ formMessage }}</p>
+    }
+
+    <section class="program-section" aria-label="Programma Berserker">
+      @for (week of programWeeks; track week.week) {
+      <ion-card class="week-card">
+        <button
+          class="week-toggle"
+          type="button"
+          [attr.aria-expanded]="expandedWeeks.has(week.week)"
+          [attr.aria-controls]="'week-content-' + week.week"
+          (click)="toggleWeek(week.week)">
+          <span>
+            <span class="week-label">Programma Berserker · Settimana {{ week.week }}</span>
+          </span>
+          <span class="toggle-indicator" [class.is-expanded]="expandedWeeks.has(week.week)" aria-hidden="true"></span>
+        </button>
+
+        @if (expandedWeeks.has(week.week)) {
+        <div class="week-content" [id]="'week-content-' + week.week">
+          @for (template of week.templates; track template.id) {
+          <article class="day-card">
+            <div class="day-heading">
+              <button
+                class="day-toggle"
+                type="button"
+                [attr.aria-expanded]="expandedTemplateIds.has(template.id)"
+                [attr.aria-controls]="'template-content-' + template.id"
+                (click)="toggleTemplate(template.id)">
+                <span class="day-title">
+                  <strong>{{ template.name }}</strong>
+                  <span>{{ template.description }}</span>
+                </span>
+                <span class="toggle-indicator" [class.is-expanded]="expandedTemplateIds.has(template.id)" aria-hidden="true"></span>
+              </button>
+              <ion-button size="small" color="warning" (click)="startWorkout(template)">Avvia</ion-button>
+            </div>
+
+            @if (expandedTemplateIds.has(template.id)) {
+            <div class="day-content" [id]="'template-content-' + template.id">
+              @if (template.exercises.length) {
+              <div class="template-exercises">
+                @for (item of template.exercises; track item.id) {
+                <div class="exercise-row">
+                  <div class="exercise-title">
+                    <strong>{{ exerciseNameFor(item) }}</strong>
+                    <ion-button size="small" fill="clear" color="danger" (click)="removeExercise(template.id, item.id)" aria-label="Rimuovi esercizio">
+                      Rimuovi
+                    </ion-button>
+                  </div>
+                  <div class="exercise-fields">
+                    <ion-item>
+                      <ion-label position="stacked">Serie</ion-label>
+                      <ion-input type="number" min="0" [(ngModel)]="item.targetSets"
+                        (ngModelChange)="updateExercise(template.id, item, 'targetSets', $event)"></ion-input>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label position="stacked">Ripetizioni / schema</ion-label>
+                      <ion-input [(ngModel)]="item.targetReps"
+                        (ngModelChange)="updateExercise(template.id, item, 'targetReps', $event)"></ion-input>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label position="stacked">Recupero (s)</ion-label>
+                      <ion-input type="number" min="0" [(ngModel)]="item.restSeconds"
+                        (ngModelChange)="updateExercise(template.id, item, 'restSeconds', $event)"></ion-input>
+                    </ion-item>
+                  </div>
+                  @if (item.notes) {
+                  <p class="exercise-note">{{ item.notes }}</p>
+                  }
+                </div>
+                }
+              </div>
+              } @else {
+              <p class="empty-text">Questa scheda non contiene ancora esercizi.</p>
+              }
+            </div>
+            }
+          </article>
+          }
+        </div>
+        }
+      </ion-card>
+      }
+    </section>
+
+    @for (template of personalTemplates; track template.id) {
+    <ion-card class="template-card">
+      <ion-card-header>
+        <div class="template-heading">
+          <button
+            class="day-toggle personal-toggle"
+            type="button"
+            [attr.aria-expanded]="expandedTemplateIds.has(template.id)"
+            [attr.aria-controls]="'template-content-' + template.id"
+            (click)="toggleTemplate(template.id)">
+            <span class="day-title">
+              <strong>{{ template.name }}</strong>
+              <span>{{ template.description }}</span>
+            </span>
+            <span class="toggle-indicator" [class.is-expanded]="expandedTemplateIds.has(template.id)" aria-hidden="true"></span>
+          </button>
+          <ion-button size="small" color="warning" (click)="startWorkout(template)">Avvia</ion-button>
+        </div>
+      </ion-card-header>
+      @if (expandedTemplateIds.has(template.id)) {
+      <ion-card-content>
+        @if (template.exercises.length) {
+        <div class="template-exercises">
+          @for (item of template.exercises; track item.id) {
+          <div class="exercise-row">
+            <div class="exercise-title">
+              <strong>{{ exerciseNameFor(item) }}</strong>
+              <ion-button size="small" fill="clear" color="danger" (click)="removeExercise(template.id, item.id)" aria-label="Rimuovi esercizio">
+                Rimuovi
+              </ion-button>
+            </div>
+            <div class="exercise-fields">
+              <ion-item>
+                <ion-label position="stacked">Serie</ion-label>
+                <ion-input type="number" min="0" [(ngModel)]="item.targetSets"
+                  (ngModelChange)="updateExercise(template.id, item, 'targetSets', $event)"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-label position="stacked">Ripetizioni / schema</ion-label>
+                <ion-input [(ngModel)]="item.targetReps"
+                  (ngModelChange)="updateExercise(template.id, item, 'targetReps', $event)"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-label position="stacked">Recupero (s)</ion-label>
+                <ion-input type="number" min="0" [(ngModel)]="item.restSeconds"
+                  (ngModelChange)="updateExercise(template.id, item, 'restSeconds', $event)"></ion-input>
+              </ion-item>
+            </div>
+            @if (item.notes) {
+            <p class="exercise-note">{{ item.notes }}</p>
+            }
+          </div>
+          }
+        </div>
+        } @else {
+        <p class="empty-text">Questa scheda non contiene ancora esercizi.</p>
+        }
+      </ion-card-content>
+      }
+    </ion-card>
+    }
+  </div>
+</ion-content>

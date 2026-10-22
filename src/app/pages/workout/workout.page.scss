@@ -1,0 +1,158 @@
+.page-shell {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: 12px 14px calc(20px + env(safe-area-inset-bottom));
+}
+
+ion-card {
+  margin: 10px 0;
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.summary-header h2 {
+  margin: 6px 0;
+  font-size: 1.25rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: #FFD166;
+  font-size: 0.7rem;
+}
+
+.plan-caption {
+  margin: 14px 0 0;
+  color: #A5A7AE;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.saved-message {
+  margin: 12px 0;
+  color: #A5A7AE;
+  text-align: center;
+}
+
+.current-set {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 209, 102, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 209, 102, 0.04);
+}
+
+.current-set h2,
+.plan-complete h2 {
+  margin: 6px 0;
+  font-size: 1.15rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.prescription {
+  margin: 8px 0 0;
+  color: #A5A7AE;
+}
+
+.prescription strong {
+  color: #FFD166;
+}
+
+.plan-complete p {
+  color: #A5A7AE;
+  line-height: 1.5;
+}
+
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.metrics-row div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.metrics-row strong {
+  font-size: 1.2rem;
+  overflow-wrap: anywhere;
+}
+
+.metrics-row span {
+  color: #A5A7AE;
+  font-size: 0.8rem;
+}
+
+.rest-card {
+  border: 1px solid rgba(255, 209, 102, 0.18);
+}
+
+.timer-display {
+  font-size: 2.4rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 8px 0 14px;
+  color: #FFD166;
+}
+
+.timer-running {
+  text-shadow: 0 0 18px rgba(255, 209, 102, 0.22);
+}
+
+.timer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.field-row.narrow {
+  grid-template-columns: 1fr;
+  margin-top: 6px;
+}
+
+.field-row ion-item {
+  min-width: 0;
+}
+
+ion-item {
+  --background: transparent;
+  --border-color: rgba(255, 255, 255, 0.08);
+}
+
+ion-card-content {
+  padding-top: 0;
+}
+
+@media (max-width: 360px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .timer-display {
+    font-size: 2rem;
+  }
+}

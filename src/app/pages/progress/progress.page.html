@@ -1,0 +1,108 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Progressi</ion-title>
+  </ion-toolbar>
+</ion-header>
+<ion-content>
+  <div class="page-shell">
+    <ion-segment
+      [value]="period"
+      (ionChange)="changePeriod($event.detail.value)"
+    >
+      <ion-segment-button value="day">
+        <ion-label>Giorno</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="week">
+        <ion-label>Settimana</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="month">
+        <ion-label>Mese</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <div class="stats-grid">
+      <ion-card>
+        <div class="stat-value">{{ recordedWorkouts }}</div>
+        <div class="stat-label">Allenamenti</div>
+      </ion-card>
+      <ion-card>
+        <div class="stat-value">{{ totalSets }}</div>
+        <div class="stat-label">Serie</div>
+      </ion-card>
+      <ion-card>
+        <div class="stat-value">{{ totalVolume | number:'1.0-1' }} kg</div>
+        <div class="stat-label">Volume</div>
+      </ion-card>
+    </div>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-label>Carichi · {{ periodTitle }}</ion-label>
+      </ion-card-header>
+      <ion-card-content>
+        {{chartData.datasets[0].data.length}}
+        @if (chartData.datasets[0].data.length) {
+        <div class="chart-wrap">
+          <canvas
+            baseChart
+            [data]="chartData"
+            [options]="chartOptions"
+            type="line"
+          ></canvas>
+        </div>
+        } @else {
+        <p class="empty-text">
+          Nessun carico registrato in questo periodo. Registra il peso durante
+          l’allenamento per vedere il grafico.
+        </p>
+        }
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-label>Storico allenamenti</ion-label>
+      </ion-card-header>
+      @if (completedSessions.length) {
+      <ion-list>
+        @for (session of completedSessions; track session.id) {
+        <details class="history-entry">
+          <summary>
+            <span>
+              <strong>{{ session.name }}</strong>
+              <span class="history-date"
+                >{{ sessionDate(session) }} · {{ session.sets.length }} serie ·
+                {{ sessionVolume(session) | number:'1.0-1' }} kg</span
+              >
+            </span>
+            <span class="history-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="history-details">
+            @for (set of session.sets; track set.id) {
+            <p>
+              <strong>{{ set.exerciseName }}</strong> · @if (set.prescription) {
+              {{ set.setNumber }} {{ set.prescription }} · } {{ set.weightKg }}
+              kg × {{ set.reps }} rip. @if (set.rir !== undefined) { · RIR {{
+              set.rir }} }
+            </p>
+            }
+            <ion-button
+              fill="clear"
+              color="danger"
+              (click)="deleteWorkout(session)"
+              >Elimina allenamento</ion-button
+            >
+          </div>
+        </details>
+        }
+      </ion-list>
+      } @else {
+      <ion-card-content>
+        <p class="empty-text">
+          Gli allenamenti conclusi e salvati appariranno qui.
+        </p>
+      </ion-card-content>
+      }
+    </ion-card>
+  </div>
+</ion-content>

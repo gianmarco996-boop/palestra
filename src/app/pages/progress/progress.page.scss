@@ -1,0 +1,138 @@
+.page-shell {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: 12px 14px calc(20px + env(safe-area-inset-bottom));
+}
+
+ion-segment {
+  --background: #1A1B20;
+  margin: 4px 0 16px;
+}
+
+ion-segment-button {
+  --color: #A5A7AE;
+  --color-checked: #1A1B20;
+  --indicator-color: #FFD166;
+  min-width: 0;
+}
+
+.chart-wrap {
+  position: relative;
+  height: 260px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.stats-grid ion-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 96px;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 6px;
+  overflow-wrap: anywhere;
+}
+
+.stat-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.stat-label {
+  color: #A5A7AE;
+  font-size: 0.75rem;
+}
+
+.empty-text {
+  color: #A5A7AE;
+  line-height: 1.5;
+}
+
+ion-card h2 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+ion-card ion-item {
+  --background: transparent;
+  --border-color: rgba(255, 255, 255, 0.08);
+}
+
+ion-card ion-item p {
+  color: #A5A7AE;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.history-entry {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.history-entry summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.history-entry summary::-webkit-details-marker {
+  display: none;
+}
+
+.history-entry summary > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.history-entry summary strong,
+.history-date {
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+
+.history-date {
+  color: #A5A7AE;
+  font-size: 0.82rem;
+}
+
+.history-chevron {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-right: 2px solid #A5A7AE;
+  border-bottom: 2px solid #A5A7AE;
+  transform: rotate(45deg);
+}
+
+.history-entry[open] .history-chevron {
+  transform: rotate(225deg);
+}
+
+.history-details {
+  padding: 8px 0 0;
+}
+
+.history-details p {
+  margin: 8px 0;
+  color: #A5A7AE;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.history-details p strong {
+  color: #F5F5F5;
+}
