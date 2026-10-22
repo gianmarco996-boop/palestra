@@ -1,0 +1,7 @@
+{
+  "name": "app-palestra",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
