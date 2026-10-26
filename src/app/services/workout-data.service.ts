@@ -219,7 +219,7 @@ export class WorkoutDataService {
     return activeSession ?? this.startWorkout(templateId);
   }
 
-  addSetToWorkout(sessionId: string, set: Partial<WorkoutSet>): void {
+  addSetToWorkout(sessionId: string, set: Partial<WorkoutSet>): WorkoutSession {
     const session = this.sessionCatalog.find((item) => item.id === sessionId);
     if (!session) {
       throw new Error('Allenamento non trovato.');
@@ -254,6 +254,13 @@ export class WorkoutDataService {
       setType: set.setType ?? 'working',
     });
     this.persist();
+    return {
+      ...session,
+      sets: session.sets.map((item) => ({
+        ...item,
+        segments: item.segments?.map((segment) => ({ ...segment })),
+      })),
+    };
   }
 
   finishWorkout(sessionId: string): WorkoutSession {

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import {
   IonBadge,
   AlertController,
@@ -55,9 +55,8 @@ interface PlannedSetProgress {
   standalone: true,
   imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonCard, IonCardHeader, IonCardContent, IonButton, IonInput, IonItem, IonLabel, IonList, IonSelect, IonSelectOption, IonBadge],
 })
-export class WorkoutPage implements OnInit {
+export class WorkoutPage {
   private readonly workoutData = inject(WorkoutDataService);
-  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly alertController = inject(AlertController);
   readonly timer = inject(RestTimerService);
@@ -77,22 +76,8 @@ export class WorkoutPage implements OnInit {
     this.syncPlannedSet();
   }
 
-  ngOnInit(): void {
-    this.route.queryParamMap.subscribe((params) => {
-      const templateId = params.get('templateId');
-      if (templateId) {
-        this.currentSession = this.workoutData.getOrStartWorkout(templateId ?? undefined);
-        this.activeTemplate = this.workoutData.getTemplates()
-          .find((template) => template.id === this.currentSession?.templateId);
-        this.selectedExerciseId = this.activeTemplate?.exercises[0]?.exerciseId ?? '';
-        this.syncPlannedSet();
-      }
-    });
-  }
-
   ionViewWillEnter(): void {
-    const templateId = this.route.snapshot.queryParamMap.get('templateId') ?? undefined;
-    this.currentSession = this.workoutData.getActiveWorkout(templateId);
+    this.currentSession = this.workoutData.getActiveWorkout();
     this.activeTemplate = this.workoutData.getTemplates()
       .find((template) => template.id === this.currentSession?.templateId);
     this.selectedExerciseId = this.activeTemplate?.exercises[0]?.exerciseId ?? '';
@@ -197,7 +182,7 @@ export class WorkoutPage implements OnInit {
     }));
     const firstSegment = segments[0];
     const restForCompletedSet = progress?.exercise.restSeconds ?? this.restSeconds;
-    this.workoutData.addSetToWorkout(this.currentSession.id, {
+    this.currentSession = this.workoutData.addSetToWorkout(this.currentSession.id, {
       exerciseId: exercise.id,
       exerciseName: exercise.name,
       templateExerciseId: progress?.exercise.id,
@@ -263,10 +248,7 @@ export class WorkoutPage implements OnInit {
   }
 
   private getInitialSession(): WorkoutSession | undefined {
-    const templateId = this.route.snapshot.queryParamMap.get('templateId');
-    return templateId
-      ? this.workoutData.getOrStartWorkout(templateId)
-      : this.workoutData.getActiveWorkout();
+    return this.workoutData.getActiveWorkout();
   }
 
   private syncPlannedSet(): void {

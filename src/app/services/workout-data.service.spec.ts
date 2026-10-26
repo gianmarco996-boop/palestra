@@ -75,11 +75,12 @@ describe('WorkoutDataService workout lifecycle', () => {
   it('finishes and persists a workout, then removes it from history on delete', () => {
     const session = service.startWorkout('week-1-day-1');
     const exercise = service.getExercises()[0];
-    service.addSetToWorkout(session.id, {
+    const updatedSession = service.addSetToWorkout(session.id, {
       exerciseId: exercise.id,
       weightKg: 0,
       reps: 8,
     });
+    expect(updatedSession.sets).toHaveLength(1);
 
     const versionBeforeFinish = service.dataVersion();
     const finished = service.finishWorkout(session.id);

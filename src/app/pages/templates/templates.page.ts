@@ -86,6 +86,7 @@ export class TemplatesPage {
   }
 
   startWorkout(template: WorkoutTemplate): void {
-    void this.router.navigate(['/workout'], { queryParams: { templateId: template.id } });
+    this.workoutData.getOrStartWorkout(template.id);
+    void this.router.navigate(['/workout']);
   }
 }
