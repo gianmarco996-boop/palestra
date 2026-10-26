@@ -1,14 +1,12 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { BERSERKER_PROGRAM } from '../data/workout-program';
 import {
   Exercise,
-  LoadMode,
   MeasurementEntry,
   WorkoutSession,
   WorkoutSet,
   WorkoutTemplate,
 } from '../models/workout.model';
-import { SupabaseService } from './supabase.service';
 
 interface StoredWorkoutData {
   version: 1;
@@ -24,7 +22,8 @@ interface CachedWorkoutData {
 }
 
 const STORAGE_KEY = 'gym-tracker.data.v2';
-const MIGRATED_USER_KEY = 'gym-tracker.migrated-user.v1';
+const USER_STORAGE_PREFIX = `${STORAGE_KEY}.user.`;
+const LEGACY_USER_ID_KEY = 'gym-tracker.migrated-user.v1';
 
 function createId(): string {
   return (
@@ -90,142 +89,54 @@ function cloneTemplate(template: WorkoutTemplate): WorkoutTemplate {
   };
 }
 
+function mergeById<T extends { id: string }>(...collections: T[][]): T[] {
+  const merged = new Map<string, T>();
+  for (const collection of collections) {
+    for (const item of collection) {
+      merged.set(item.id, item);
+    }
+  }
+  return [...merged.values()];
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class WorkoutDataService {
-  readonly syncStatus = signal<
-    'local' | 'waiting-for-login' | 'syncing' | 'synced' | 'error'
-  >('local');
-  readonly syncError = signal('');
+  readonly dataVersion = signal(0);
   private exerciseCatalog: Exercise[];
   private templateCatalog: WorkoutTemplate[];
   private sessionCatalog: WorkoutSession[];
   private measurementCatalog: MeasurementEntry[];
-  private activeUserId: string | null = null;
-  private syncTimeout: ReturnType<typeof setTimeout> | undefined;
-  private syncQueue: Promise<void> = Promise.resolve();
-  private revision = 0;
-  private readonly supabaseService = inject(SupabaseService);
 
   constructor() {
     const stored = localStorage.getItem(STORAGE_KEY);
-    const data = stored
+    const legacyCaches = this.readLegacyUserCaches();
+    const baseData = stored
       ? (JSON.parse(stored) as StoredWorkoutData)
-      : createInitialData();
+      : legacyCaches[0]?.data ?? createInitialData();
+    const legacyData = legacyCaches.map((cache) => cache.data);
+    const data: StoredWorkoutData = {
+      version: 1,
+      exercises: mergeById(baseData.exercises, ...legacyData.map((item) => item.exercises)),
+      templates: mergeById(baseData.templates, ...legacyData.map((item) => item.templates)),
+      workouts: mergeById(baseData.workouts, ...legacyData.map((item) => item.workouts))
+        .sort((first, second) =>
+          new Date(second.startedAt).getTime() - new Date(first.startedAt).getTime()),
+      measurements: mergeById(baseData.measurements, ...legacyData.map((item) => item.measurements)),
+    };
     this.exerciseCatalog = data.exercises;
     this.templateCatalog = data.templates;
     this.sessionCatalog = data.workouts;
     this.measurementCatalog = data.measurements;
 
-    if (!stored) {
+    if (!stored || legacyCaches.length) {
       this.persist();
-    }
-  }
-
-  async connectUser(userId: string): Promise<void> {
-    if (this.activeUserId === userId && this.syncStatus() !== 'error') {
-      return;
-    }
-
-    if (this.activeUserId) {
-      localStorage.setItem(
-        this.userStorageKey(this.activeUserId),
-        this.serialize(),
-      );
-    }
-
-    const userKey = this.userStorageKey(userId);
-    const userCache = localStorage.getItem(userKey);
-    const migratedUser = localStorage.getItem(MIGRATED_USER_KEY);
-    let localUpdatedAt: string | null = null;
-    if (userCache) {
-      try {
-        const cached = JSON.parse(userCache) as CachedWorkoutData;
-        if (cached.data && cached.updatedAt) {
-          this.loadData(JSON.stringify(cached.data));
-          localUpdatedAt = cached.updatedAt;
-        } else {
-          this.loadData(userCache);
-        }
-      } catch (error) {
-        this.syncStatus.set('error');
-        this.syncError.set(
-          error instanceof Error
-            ? error.message
-            : 'La cache locale non è valida.',
-        );
-        return;
+      for (const cache of legacyCaches) {
+        localStorage.removeItem(cache.key);
       }
-    } else if (migratedUser && migratedUser !== userId) {
-      this.loadData(JSON.stringify(createInitialData()));
-    } else {
-      localStorage.setItem(MIGRATED_USER_KEY, userId);
     }
-
-    this.activeUserId = userId;
-    this.syncStatus.set('syncing');
-    this.syncError.set('');
-    this.writeUserCache(userId, localUpdatedAt!);
-
-    const client = this.supabaseService.getClient();
-    if (!client) {
-      this.syncStatus.set('error');
-      this.syncError.set('La sincronizzazione remota non è configurata.');
-      return;
-    }
-
-    const { data, error } = await client
-      .from('user_app_data')
-      .select('data, updated_at')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      this.syncStatus.set('error');
-      this.syncError.set(error.message);
-      return;
-    }
-
-    if (
-      data?.data &&
-      localUpdatedAt &&
-      new Date(localUpdatedAt).getTime() > new Date(data.updated_at).getTime()
-    ) {
-      await this.uploadSnapshot(userId, this.serialize(), this.revision);
-      return;
-    }
-
-    if (data?.data) {
-      try {
-        this.loadData(JSON.stringify(data.data));
-        this.writeUserCache(userId, data.updated_at);
-        this.syncStatus.set('synced');
-      } catch (loadError) {
-        this.syncStatus.set('error');
-        this.syncError.set(
-          loadError instanceof Error
-            ? loadError.message
-            : 'I dati cloud non sono validi.',
-        );
-      }
-      return;
-    }
-
-    await this.uploadSnapshot(userId, this.serialize(), this.revision);
-  }
-
-  disconnectUser(): void {
-    if (this.syncTimeout) {
-      clearTimeout(this.syncTimeout);
-      this.syncTimeout = undefined;
-    }
-    this.activeUserId = null;
-    this.syncStatus.set('local');
-    this.syncError.set('');
-    this.loadData(
-      localStorage.getItem(STORAGE_KEY) ?? JSON.stringify(createInitialData()),
-    );
+    this.clearLegacyAccountStorage();
   }
 
   getExercises(): Exercise[] {
@@ -233,152 +144,50 @@ export class WorkoutDataService {
   }
 
   getTemplates(): WorkoutTemplate[] {
-    return this.templateCatalog.map(cloneTemplate);
+    return this.templateCatalog
+      .filter((template) => /^week-\d+-day-\d+$/.test(template.id))
+      .map(cloneTemplate);
   }
 
   getSessions(): WorkoutSession[] {
-    return this.sessionCatalog.map((session) => ({
-      ...session,
-      sets: session.sets.map((set) => ({ ...set })),
-    }));
-  }
-
-  getMeasurements(): MeasurementEntry[] {
-    return [...this.measurementCatalog].sort(
-      (a, b) =>
-        new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime(),
-    );
-  }
-
-  createExercise(
-    name: string,
-    muscleGroup: string,
-    equipment: string,
-    loadMode: LoadMode,
-  ): Exercise {
-    const normalizedName = name.trim();
-    if (!normalizedName) {
-      throw new Error('Inserisci il nome dell’esercizio.');
-    }
-
-    const exercise: Exercise = {
-      id: createId(),
-      name: normalizedName,
-      muscleGroup: muscleGroup.trim() || 'Personalizzato',
-      equipment: equipment.trim() || 'Da specificare',
-      loadMode,
-      isSystem: false,
-    };
-
-    this.exerciseCatalog.push(exercise);
-    this.persist();
-    return { ...exercise };
-  }
-
-  createTemplate(name: string, description: string): WorkoutTemplate {
-    const normalizedName = name.trim();
-    if (!normalizedName) {
-      throw new Error('Inserisci il nome della scheda.');
-    }
-
-    const template: WorkoutTemplate = {
-      id: createId(),
-      name: normalizedName,
-      description: description.trim(),
-      exercises: [],
-    };
-
-    this.templateCatalog.push(template);
-    this.persist();
-    return cloneTemplate(template);
-  }
-
-  addExerciseToTemplate(templateId: string, exerciseIdToAdd: string): void {
-    const template = this.templateCatalog.find(
-      (item) => item.id === templateId,
-    );
-    const exercise = this.exerciseCatalog.find(
-      (item) => item.id === exerciseIdToAdd,
-    );
-    if (!template || !exercise) {
-      throw new Error('Scheda o esercizio non trovato.');
-    }
-
-    template.exercises.push({
-      id: createId(),
-      exerciseId: exercise.id,
-      position: template.exercises.length + 1,
-      targetSets: 3,
-      targetReps: '8',
-      restSeconds: 90,
-    });
-    this.persist();
-  }
-
-  updateTemplateExercise(
-    templateId: string,
-    templateExerciseId: string,
-    changes: Partial<
-      Pick<
-        WorkoutTemplate['exercises'][number],
-        'targetSets' | 'targetReps' | 'restSeconds'
-      >
-    >,
-  ): void {
-    const template = this.templateCatalog.find(
-      (item) => item.id === templateId,
-    );
-    const templateExercise = template?.exercises.find(
-      (item) => item.id === templateExerciseId,
-    );
-    if (!templateExercise) {
-      throw new Error('Esercizio della scheda non trovato.');
-    }
-
-    if (changes.targetSets !== undefined) {
-      templateExercise.targetSets = Math.max(0, Math.floor(changes.targetSets));
-    }
-    if (changes.targetReps !== undefined) {
-      templateExercise.targetReps = changes.targetReps.trim();
-    }
-    if (changes.restSeconds !== undefined) {
-      templateExercise.restSeconds = Math.max(
-        0,
-        Math.floor(changes.restSeconds),
+    return this.sessionCatalog
+      .map((session) => ({
+        ...session,
+        sets: session.sets.map((set) => ({
+          ...set,
+          segments: set.segments?.map((segment) => ({ ...segment })),
+        })),
+      }))
+      .sort(
+        (first, second) =>
+          new Date(second.finishedAt ?? second.startedAt).getTime() -
+          new Date(first.finishedAt ?? first.startedAt).getTime(),
       );
-    }
-    this.persist();
   }
 
-  removeExerciseFromTemplate(
-    templateId: string,
-    templateExerciseId: string,
-  ): void {
-    const template = this.templateCatalog.find(
-      (item) => item.id === templateId,
-    );
+  getActiveWorkout(templateId?: string): WorkoutSession | undefined {
+    return this.getSessions()
+      .filter(
+        (session) =>
+          session.status === 'in_progress' &&
+          (!templateId || session.templateId === templateId) &&
+          this.getTemplates().some(
+            (template) => template.id === session.templateId,
+          ),
+      )
+      [0];
+  }
+
+  startWorkout(templateId: string): WorkoutSession {
+    const template = this.getTemplates().find((item) => item.id === templateId);
     if (!template) {
-      throw new Error('Scheda non trovata.');
-    }
-
-    template.exercises = template.exercises
-      .filter((item) => item.id !== templateExerciseId)
-      .map((item, index) => ({ ...item, position: index + 1 }));
-    this.persist();
-  }
-
-  startWorkout(templateId?: string): WorkoutSession {
-    const template = templateId
-      ? this.templateCatalog.find((item) => item.id === templateId)
-      : undefined;
-    if (templateId && !template) {
       throw new Error('La scheda selezionata non esiste.');
     }
 
     const session: WorkoutSession = {
       id: createId(),
-      name: template?.name ?? 'Allenamento libero',
-      templateId: template?.id,
+      name: template.name,
+      templateId: template.id,
       startedAt: new Date().toISOString(),
       status: 'in_progress',
       sets: [],
@@ -390,17 +199,22 @@ export class WorkoutDataService {
   }
 
   getOrStartWorkout(templateId?: string): WorkoutSession {
-    if (
-      templateId &&
-      !this.templateCatalog.some((template) => template.id === templateId)
-    ) {
+    if (!templateId) {
+      const activeSession = this.getActiveWorkout();
+      if (activeSession) {
+        return activeSession;
+      }
+      throw new Error('Scegli una scheda prima di iniziare un allenamento.');
+    }
+
+    if (!this.getTemplates().some((template) => template.id === templateId)) {
       throw new Error('La scheda selezionata non esiste.');
     }
 
     const activeSession = this.sessionCatalog.find(
       (session) =>
         session.status === 'in_progress' &&
-        (!templateId || session.templateId === templateId),
+        session.templateId === templateId,
     );
     return activeSession ?? this.startWorkout(templateId);
   }
@@ -432,6 +246,7 @@ export class WorkoutDataService {
         ).length + 1,
       weightKg: set.weightKg ?? 0,
       reps: set.reps ?? 0,
+      segments: set.segments?.map((segment) => ({ ...segment })),
       rir: set.rir,
       rpe: set.rpe,
       restSeconds: set.restSeconds ?? 90,
@@ -447,7 +262,13 @@ export class WorkoutDataService {
       throw new Error('Allenamento non trovato.');
     }
     if (session.status === 'completed') {
-      return { ...session, sets: session.sets.map((set) => ({ ...set })) };
+      return {
+        ...session,
+        sets: session.sets.map((set) => ({
+          ...set,
+          segments: set.segments?.map((segment) => ({ ...segment })),
+        })),
+      };
     }
     if (session.sets.length === 0) {
       throw new Error(
@@ -458,7 +279,13 @@ export class WorkoutDataService {
     session.status = 'completed';
     session.finishedAt = new Date().toISOString();
     this.persist();
-    return { ...session, sets: session.sets.map((set) => ({ ...set })) };
+    return {
+      ...session,
+      sets: session.sets.map((set) => ({
+        ...set,
+        segments: set.segments?.map((segment) => ({ ...segment })),
+      })),
+    };
   }
 
   deleteWorkout(sessionId: string): void {
@@ -469,11 +296,6 @@ export class WorkoutDataService {
       throw new Error('Allenamento non trovato.');
     }
     this.sessionCatalog.splice(sessionIndex, 1);
-    this.persist();
-  }
-
-  addMeasurement(entry: MeasurementEntry): void {
-    this.measurementCatalog.unshift(entry);
     this.persist();
   }
 
@@ -492,16 +314,8 @@ export class WorkoutDataService {
   }
 
   private persist(): void {
-    const serialized = this.serialize();
-    if (this.activeUserId) {
-      this.writeUserCache(this.activeUserId);
-    } else {
-      localStorage.setItem(STORAGE_KEY, serialized);
-    }
-    this.revision++;
-    if (this.activeUserId) {
-      this.scheduleSync();
-    }
+    localStorage.setItem(STORAGE_KEY, this.serialize());
+    this.dataVersion.update((version) => version + 1);
   }
 
   private serialize(): string {
@@ -515,99 +329,50 @@ export class WorkoutDataService {
     return JSON.stringify(data);
   }
 
-  private loadData(serialized: string): void {
-    const data = JSON.parse(serialized) as StoredWorkoutData;
-    if (
-      !Array.isArray(data.exercises) ||
-      !Array.isArray(data.templates) ||
-      !Array.isArray(data.workouts) ||
-      !Array.isArray(data.measurements)
-    ) {
-      throw new Error(
-        'Il salvataggio dell’allenamento non ha un formato valido.',
-      );
-    }
-    this.exerciseCatalog = data.exercises;
-    this.templateCatalog = data.templates;
-    this.sessionCatalog = data.workouts;
-    this.measurementCatalog = data.measurements;
-  }
-
-  private userStorageKey(userId: string): string {
-    return `${STORAGE_KEY}.user.${userId}`;
-  }
-
-  private writeUserCache(
-    userId: string,
-    updatedAt = new Date().toISOString(),
-  ): void {
-    const cache: CachedWorkoutData = {
-      data: JSON.parse(this.serialize()) as StoredWorkoutData,
-      updatedAt,
-    };
-    localStorage.setItem(this.userStorageKey(userId), JSON.stringify(cache));
-  }
-
-  private scheduleSync(): void {
-    if (this.syncTimeout) {
-      clearTimeout(this.syncTimeout);
-    }
-    this.syncStatus.set('syncing');
-    this.syncTimeout = setTimeout(() => {
-      this.syncTimeout = undefined;
-      const userId = this.activeUserId;
-      if (!userId) {
-        return;
+  private readLegacyUserCaches(): { key: string; data: StoredWorkoutData }[] {
+    const caches: { key: string; data: StoredWorkoutData; updatedAt: number }[] = [];
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index);
+      if (!key?.startsWith(USER_STORAGE_PREFIX)) {
+        continue;
       }
-      const serialized = this.serialize();
-      const revision = this.revision;
-      this.syncQueue = this.syncQueue
-        .then(() => this.uploadSnapshot(userId, serialized, revision))
-        .catch((error: unknown) => {
-          if (this.activeUserId === userId) {
-            this.syncStatus.set('error');
-            this.syncError.set(
-              error instanceof Error
-                ? error.message
-                : 'Sincronizzazione non riuscita.',
-            );
-          }
-        });
-    }, 500);
+
+      const serialized = localStorage.getItem(key);
+      if (serialized === null) {
+        continue;
+      }
+      const cached = JSON.parse(serialized) as CachedWorkoutData;
+      const data = cached.data;
+      const updatedAt = new Date(cached.updatedAt).getTime();
+      if (
+        !data ||
+        !Array.isArray(data.exercises) ||
+        !Array.isArray(data.templates) ||
+        !Array.isArray(data.workouts) ||
+        !Array.isArray(data.measurements) ||
+        !Number.isFinite(updatedAt)
+      ) {
+        throw new Error('La cache locale dell’account non è valida.');
+      }
+      caches.push({
+        key,
+        data,
+        updatedAt,
+      });
+    }
+    return caches
+      .sort((first, second) => first.updatedAt - second.updatedAt)
+      .map(({ key, data }) => ({ key, data }));
   }
 
-  private async uploadSnapshot(
-    userId: string,
-    serialized: string,
-    revision: number,
-  ): Promise<void> {
-    const client = this.supabaseService.getClient();
-    if (!client) {
-      this.syncStatus.set('error');
-      this.syncError.set('La sincronizzazione remota non è configurata.');
-      return;
-    }
-
-    const updatedAt = new Date().toISOString();
-    const { error } = await client.from('user_app_data').upsert(
-      {
-        user_id: userId,
-        data: JSON.parse(serialized) as StoredWorkoutData,
-        updated_at: updatedAt,
-      },
-      { onConflict: 'user_id' },
-    );
-
-    if (error) {
-      this.syncStatus.set('error');
-      this.syncError.set(error.message);
-      return;
-    }
-
-    if (this.activeUserId === userId && this.revision === revision) {
-      this.writeUserCache(userId, updatedAt);
-      this.syncStatus.set('synced');
-      this.syncError.set('');
+  private clearLegacyAccountStorage(): void {
+    localStorage.removeItem(LEGACY_USER_ID_KEY);
+    for (let index = localStorage.length - 1; index >= 0; index--) {
+      const key = localStorage.key(index);
+      if (key?.startsWith('sb-')) {
+        localStorage.removeItem(key);
+      }
     }
   }
+
 }

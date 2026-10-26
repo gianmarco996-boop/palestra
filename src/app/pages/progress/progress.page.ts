@@ -21,7 +21,7 @@ import {
   IonTitle,
   IonToolbar,
 } from '@ionic/angular';
-import { WorkoutSession } from '../../models/workout.model';
+import { WorkoutSession, workoutSetVolume } from '../../models/workout.model';
 import { WorkoutDataService } from '../../services/workout-data.service';
 
 type ProgressPeriod = 'day' | 'week' | 'month';
@@ -104,7 +104,8 @@ export class ProgressPage {
       .filter((session) => session.status === 'completed')
       .sort(
         (a, b) =>
-          new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+          new Date(b.finishedAt ?? b.startedAt).getTime() -
+          new Date(a.finishedAt ?? a.startedAt).getTime(),
       );
   }
 
@@ -123,10 +124,7 @@ export class ProgressPage {
     return this.periodSessions.reduce(
       (total, session) =>
         total +
-        session.sets.reduce(
-          (volume, set) => volume + (set.weightKg ?? 0) * (set.reps ?? 0),
-          0,
-        ),
+        session.sets.reduce((volume, set) => volume + workoutSetVolume(set), 0),
       0,
     );
   }
@@ -158,7 +156,7 @@ export class ProgressPage {
 
   sessionVolume(session: WorkoutSession): number {
     return session.sets.reduce(
-      (volume, set) => volume + (set.weightKg ?? 0) * (set.reps ?? 0),
+      (volume, set) => volume + workoutSetVolume(set),
       0,
     );
   }
@@ -227,17 +225,22 @@ export class ProgressPage {
   private createChartData(): ChartConfiguration<'line'>['data'] {
     const sets = this.periodSessions
       .flatMap((session) =>
-        session.sets
-          .filter((set) => (set.weightKg ?? 0) > 0)
-          .map((set) => ({
-            date: new Date(
-              session.finishedAt ?? session.startedAt,
-            ).toLocaleDateString('it-IT', {
-              day: 'numeric',
-              month: 'short',
-            }),
-            weight: set.weightKg ?? 0,
-          })),
+        session.sets.flatMap((set) => {
+          const loads = set.segments?.length
+            ? set.segments.map((segment) => segment.weightKg)
+            : [set.weightKg ?? 0];
+          return loads
+            .filter((weight) => weight > 0)
+            .map((weight) => ({
+              date: new Date(
+                session.finishedAt ?? session.startedAt,
+              ).toLocaleDateString('it-IT', {
+                day: 'numeric',
+                month: 'short',
+              }),
+              weight,
+            }));
+        }),
       )
       .reverse();
 

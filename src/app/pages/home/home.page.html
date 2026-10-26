@@ -6,71 +6,63 @@
 
 <ion-content [fullscreen]="true">
   <div class="page-shell">
-    <ion-card class="hero-card">
-      <div class="hero-header">
-        <div>
-          <p class="eyebrow">Gym tracker</p>
-          <h2>Inizia oggi</h2>
-        </div>
-      </div>
+    <h1>Allenamenti</h1>
+    @for (week of workoutWeeks; track week.week ?? 'other') {
+    <ion-card class="week-card">
+      <details>
+        <summary>
+          <span>
+            <strong>{{ week.label }}</strong>
+            <span class="week-meta">{{ week.days.length }} giorni · {{ week.sessionCount }} allenamenti</span>
+          </span>
+          <span class="chevron" aria-hidden="true"></span>
+        </summary>
 
-      <p class="muted">Scheda prevista: {{ templates[0]?.name ?? 'Nessuna scheda salvata' }}</p>
-      <ion-button expand="block" color="warning" (click)="goToWorkout()">Inizia allenamento</ion-button>
+        <div class="week-content">
+          @for (day of week.days; track day.day ?? day.name) {
+          <section class="day-group">
+            <h2>{{ day.name }}</h2>
+            @for (session of day.sessions; track session.id) {
+            <article class="session-entry">
+              <p class="session-meta">
+                {{ sessionDate(session) }} · {{ sessionVolume(session) | number:'1.0-1' }} kg
+              </p>
+              @for (exercise of sessionExercises(session); track exercise.id) {
+              <div class="exercise-group">
+                <h3>{{ exercise.name }}</h3>
+                <ul>
+                  @for (set of exercise.sets; track set.id) {
+                  <li>
+                    <span>Serie {{ set.setNumber }}</span>
+                    <span class="set-load">
+                      @if (set.segments?.length) {
+                      @for (segment of set.segments; track $index) {
+                      @if ($index > 0) { <span class="segment-plus"> + </span> }
+                      {{ segment.weightKg }} kg × {{ segment.reps }}
+                      }
+                      } @else {
+                      {{ set.weightKg ?? 0 }} kg × {{ set.reps ?? 0 }}
+                      }
+                      rip.
+                    </span>
+                  </li>
+                  }
+                </ul>
+              </div>
+              }
+            </article>
+            }
+          </section>
+          }
+        </div>
+      </details>
     </ion-card>
-
-    <div class="stats-grid">
-      <ion-card>
-        <ion-icon name="calendar-outline"></ion-icon>
-        <div>
-          <strong>{{ completedSessionsThisWeek }}</strong>
-          <small>Settimana</small>
-        </div>
-      </ion-card>
-
-      <ion-card>
-        <ion-icon name="barbell-outline"></ion-icon>
-        <div>
-          <strong>{{ totalVolume }} kg</strong>
-          <small>Volume</small>
-        </div>
-      </ion-card>
-
-      <ion-card>
-        <ion-icon name="fitness-outline"></ion-icon>
-        <div>
-          <strong>{{ exercises.length }}</strong>
-          <small>Esercizi</small>
-        </div>
-      </ion-card>
-    </div>
-
-    <ion-card>
-      <ion-card-header>
-        <ion-label>Ultimo allenamento</ion-label>
-      </ion-card-header>
+    } @empty {
+    <ion-card class="empty-card">
       <ion-card-content>
-        <div class="summary-row">
-          <span>{{ latestSession ? latestSession.name : 'Nessun allenamento registrato' }}</span>
-          <span>{{ latestSession ? latestSession.sets.length : 0 }} serie</span>
-        </div>
+        <p>Gli allenamenti conclusi appariranno qui, raggruppati per settimana.</p>
       </ion-card-content>
     </ion-card>
-
-    <ion-card>
-      <ion-card-header>
-        <ion-label>Dettaglio schede</ion-label>
-      </ion-card-header>
-      <ion-list>
-        @for (template of templates; track template.id) {
-        <ion-item>
-          <ion-label>
-            <h3>{{ template.name }}</h3>
-            <p>{{ template.description }}</p>
-          </ion-label>
-          <ion-badge color="warning">{{ template.exercises.length }}</ion-badge>
-        </ion-item>
-        }
-      </ion-list>
-    </ion-card>
+    }
   </div>
 </ion-content>

@@ -6,18 +6,18 @@
 
 <ion-content [fullscreen]="true">
   <div class="page-shell">
+    @if (currentSession; as session) {
     <ion-card class="session-summary">
       <div class="summary-header">
         <div>
           <p class="eyebrow">Sessione</p>
-          <h2>{{ currentSession.name }}</h2>
+          <h2>{{ session.name }}</h2>
         </div>
-        <ion-button color="warning" fill="outline" (click)="startNewWorkout()">Nuova</ion-button>
       </div>
 
       <div class="metrics-row">
         <div>
-          <strong>{{ currentSession.sets.length }}</strong>
+          <strong>{{ session.sets.length }}</strong>
           <span>Serie</span>
         </div>
         <div>
@@ -26,11 +26,11 @@
         </div>
       </div>
       @if (isFinished) {
-      <p class="saved-message">Allenamento concluso e salvato nello storico.</p>
+      <p>Allenamento concluso e salvato nello storico.</p>
       <ion-button expand="block" fill="outline" color="warning" (click)="openProgress()">Vedi progressi e storico</ion-button>
       } @else {
-      <ion-button expand="block" color="warning" [disabled]="!currentSession.sets.length" (click)="finishWorkout()">
-        Concludi e salva allenamento
+      <ion-button expand="block" color="warning" [disabled]="!session.sets.length || isFinishing" (click)="finishWorkout()">
+        {{ isFinishing ? 'Salvataggio...' : 'Concludi e salva allenamento' }}
       </ion-button>
       }
       @if (activeTemplate) {
@@ -44,10 +44,10 @@
         <ion-label>Recupero</ion-label>
       </ion-card-header>
       <ion-card-content>
-        <div class="timer-display" [class.timer-running]="timer.isRunning()">{{ timer.display() }}</div>
+        <div class="timer-display">{{ timer.display() }}</div>
         <div class="timer-actions">
           <ion-button size="small" color="warning" (click)="startRestTimer()">
-            {{ timer.isRunning() ? 'Riavvia' : 'Avvia' }}
+            {{ timer.isRunning() ? 'Riavvia' : 'Avvia timer' }}
           </ion-button>
           <ion-button size="small" fill="outline" color="light" (click)="stopRestTimer()">Stop</ion-button>
           <ion-button size="small" fill="outline" color="light" (click)="addRestSeconds(15)">+15s</ion-button>
@@ -75,7 +75,10 @@
       <ion-card-content>
         @if (plannedSetProgress; as progress) {
         <div class="current-set">
-          <p class="eyebrow">Prossima serie · {{ progress.setNumber }} di {{ progress.exercise.targetSets }}</p>
+          <p class="eyebrow">
+            Esercizio {{ progress.exercise.position }} di {{ plannedExercises.length }}
+            · Serie {{ progress.setNumber }} di {{ progress.exercise.targetSets }}
+          </p>
           <h2>{{ getExerciseName(progress.exercise.exerciseId) }}</h2>
           <p class="prescription">
             Prescrizione: <strong>{{ progress.prescription.label }}</strong>
@@ -105,10 +108,30 @@
         </ion-item>
         }
 
+        @if (setSegments.length) {
+        <p class="eyebrow">Fasi della serie</p>
+        @for (segment of setSegments; track $index) {
+        <div class="field-row">
+          <ion-item>
+            <ion-label position="stacked">Fase {{ $index + 1 }} · kg</ion-label>
+            <ion-input type="number" min="0" [(ngModel)]="segment.weightKg"></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Ripetizioni fase {{ $index + 1 }}</ion-label>
+            <ion-input type="number" min="1" [(ngModel)]="segment.reps"></ion-input>
+          </ion-item>
+        </div>
+        }
+        <div class="set-segment-actions">
+          <ion-button size="small" fill="outline" color="warning" (click)="addSetSegment()">Aggiungi fase</ion-button>
+          <ion-button size="small" fill="clear" color="medium" (click)="removeSetSegments()">Annulla fasi</ion-button>
+        </div>
+        } @else {
         <div class="field-row">
           <ion-item>
             <ion-label position="stacked">Peso kg</ion-label>
-            <ion-input type="number" [(ngModel)]="weight"></ion-input>
+            <ion-input type="number" min="0" [(ngModel)]="weight"></ion-input>
           </ion-item>
 
           <ion-item>
@@ -116,6 +139,10 @@
             <ion-input type="number" min="1" [(ngModel)]="reps" placeholder="Inserisci le ripetizioni"></ion-input>
           </ion-item>
         </div>
+        <div class="set-segment-actions">
+          <ion-button size="small" fill="outline" color="medium" (click)="addSetSegment()">Aggiungi fase (drop-set)</ion-button>
+        </div>
+        }
 
         <div class="field-row narrow">
           <ion-item>
@@ -146,7 +173,16 @@
               @if (set.prescription) {
               {{ set.setNumber }} · {{ set.prescription }} ·
               }
+              @if (!set.segments?.length) {
               {{ set.weightKg }} kg × {{ set.reps }} rip.
+              }
+              @if (set.segments?.length) {
+              ·
+              @for (segment of set.segments; track $index) {
+              @if ($index > 0) { + }
+              {{ segment.weightKg }} kg × {{ segment.reps }} rip.
+              }
+              }
               @if (set.rir !== undefined) {
               · RIR {{ set.rir }}
               }
@@ -157,5 +193,16 @@
         }
       </ion-list>
     </ion-card>
+    } @else {
+    <ion-card class="empty-session">
+      <ion-card-header>
+        <ion-label>Nessun allenamento attivo</ion-label>
+      </ion-card-header>
+      <ion-card-content>
+        <p>Scegli una scheda per iniziare. Da qui puoi riprendere gli allenamenti già avviati.</p>
+        <ion-button expand="block" color="warning" (click)="goToTemplates()">Vai alle schede</ion-button>
+      </ion-card-content>
+    </ion-card>
+    }
   </div>
 </ion-content>

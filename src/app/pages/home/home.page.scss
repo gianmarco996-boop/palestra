@@ -1,101 +1,144 @@
 .page-shell {
-  width: min(100%, 760px);
+  width: min(100%, 680px);
   margin: 0 auto;
   padding: 12px 14px calc(20px + env(safe-area-inset-bottom));
 }
 
-.hero-card {
-  background: linear-gradient(135deg, rgba(255, 209, 102, 0.1), rgba(26, 27, 32, 0.8));
-  border: 1px solid rgba(255, 209, 102, 0.22);
-  padding: 8px;
+h1 {
+  margin: 4px 4px 14px;
+  font-size: 1.35rem;
 }
 
-.hero-header {
+.week-card {
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+.week-card summary {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
   gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
 }
 
-.eyebrow {
-  margin: 0;
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #FFD166;
+.week-card summary::-webkit-details-marker {
+  display: none;
 }
 
-h2 {
-  margin: 8px 0 0;
-  font-size: 1.7rem;
-  overflow-wrap: anywhere;
-}
-
-.muted {
-  color: #A5A7AE;
-}
-
-.stats-grid {
+.week-card summary > span:first-child {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin: 18px 0;
-}
-
-.stats-grid ion-card {
   min-width: 0;
+  gap: 4px;
+}
+
+.week-card summary strong {
+  overflow-wrap: anywhere;
+}
+
+.week-meta,
+.session-meta {
+  color: #A5A7AE;
+  font-size: 0.82rem;
+}
+
+.chevron {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-right: 2px solid #FFD166;
+  border-bottom: 2px solid #FFD166;
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+details[open] > summary .chevron {
+  transform: rotate(225deg);
+}
+
+.week-content {
+  padding: 0 14px 12px;
+}
+
+.day-group {
+  padding: 12px 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.day-group h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.session-entry + .session-entry {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.session-meta {
+  margin: 0 0 8px;
+}
+
+.exercise-group {
+  min-width: 0;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.exercise-group h3 {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.exercise-group ul {
+  display: grid;
+  gap: 6px;
   margin: 0;
-  overflow-wrap: anywhere;
+  padding: 0;
+  list-style: none;
 }
 
-.stats-grid ion-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 105px;
-  padding: 10px 8px;
-  text-align: center;
-}
-
-.stats-grid strong,
-.stats-grid small {
-  display: block;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-
-.stats-grid ion-icon {
-  color: #FFD166;
-  font-size: 1.5rem;
-}
-
-.summary-row {
+.exercise-group li {
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  color: #A5A7AE;
+  font-size: 0.84rem;
+}
+
+.set-load {
   color: #F5F5F5;
+  text-align: right;
 }
 
-ion-card-header {
-  padding-bottom: 8px;
+.segment-plus {
+  color: #A5A7AE;
 }
 
-ion-list {
-  background: transparent;
+.empty-card {
+  margin: 0;
+  color: #A5A7AE;
+}
+
+.empty-card p {
+  margin: 0;
+  line-height: 1.5;
 }
 
 @media (max-width: 360px) {
-  .hero-header {
+  .page-shell {
+    padding-inline: 10px;
+  }
+
+  .week-content {
+    padding-inline: 10px;
+  }
+
+  .exercise-group li {
     align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .stats-grid {
-    gap: 6px;
-  }
-
-  .stats-grid strong {
-    font-size: 0.9rem;
   }
 }

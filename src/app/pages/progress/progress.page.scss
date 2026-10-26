@@ -6,14 +6,20 @@
 
 ion-segment {
   --background: #1A1B20;
+  --border-radius: 10px;
   margin: 4px 0 16px;
 }
 
 ion-segment-button {
   --color: #A5A7AE;
-  --color-checked: #1A1B20;
+  --color-checked: #FFD166;
   --indicator-color: #FFD166;
+  --indicator-height: 3px;
   min-width: 0;
+}
+
+ion-segment-button ion-label {
+  white-space: nowrap;
 }
 
 .chart-wrap {

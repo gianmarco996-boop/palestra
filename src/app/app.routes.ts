@@ -22,10 +22,6 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/progress/progress.page').then((m) => m.ProgressPage),
       },
       {
-        path: 'settings',
-        loadComponent: () => import('./pages/settings/settings.page').then((m) => m.SettingsPage),
-      },
-      {
         path: '',
         redirectTo: 'home',
         pathMatch: 'full',

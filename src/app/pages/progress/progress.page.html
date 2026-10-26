@@ -81,9 +81,17 @@
             @for (set of session.sets; track set.id) {
             <p>
               <strong>{{ set.exerciseName }}</strong> · @if (set.prescription) {
-              {{ set.setNumber }} {{ set.prescription }} · } {{ set.weightKg }}
-              kg × {{ set.reps }} rip. @if (set.rir !== undefined) { · RIR {{
-              set.rir }} }
+              {{ set.setNumber }} {{ set.prescription }} · }
+              @if (!set.segments?.length) {
+              {{ set.weightKg }} kg × {{ set.reps }} rip.
+              }
+              @if (set.segments?.length) {
+              · @for (segment of set.segments; track $index) {
+              @if ($index > 0) { + }
+              {{ segment.weightKg }} kg × {{ segment.reps }} rip.
+              }
+              }
+              @if (set.rir !== undefined) { · RIR {{ set.rir }} }
             </p>
             }
             <ion-button

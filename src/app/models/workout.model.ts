@@ -36,11 +36,27 @@ export interface WorkoutSet {
   setNumber: number;
   weightKg?: number;
   reps?: number;
+  segments?: WorkoutSetSegment[];
   rir?: number;
   rpe?: number;
   restSeconds: number;
   isCompleted: boolean;
   setType: 'warmup' | 'working';
+}
+
+export interface WorkoutSetSegment {
+  weightKg: number;
+  reps: number;
+}
+
+export function workoutSetVolume(set: WorkoutSet): number {
+  if (set.segments?.length) {
+    return set.segments.reduce(
+      (volume, segment) => volume + segment.weightKg * segment.reps,
+      0,
+    );
+  }
+  return (set.weightKg ?? 0) * (set.reps ?? 0);
 }
 
 export interface WorkoutSession {
@@ -63,10 +79,4 @@ export interface MeasurementEntry {
   waistCm?: number;
   armCm?: number;
   thighCm?: number;
-}
-
-export interface UserProfile {
-  id: string;
-  email: string;
-  fullName?: string;
 }

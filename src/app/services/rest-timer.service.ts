@@ -2,7 +2,6 @@ import { Injectable, computed, signal } from '@angular/core';
 
 interface PersistedTimer {
   durationSeconds: number;
-  endsAt: number | null;
 }
 
 const TIMER_STORAGE_KEY = 'gym-tracker.rest-timer.v1';
@@ -30,10 +29,6 @@ export class RestTimerService {
       if (Number.isFinite(state.durationSeconds) && state.durationSeconds > 0) {
         this.duration.set(Math.floor(state.durationSeconds));
         this.remaining.set(Math.floor(state.durationSeconds));
-      }
-      if (state.endsAt && state.endsAt > Date.now()) {
-        this.endsAt.set(state.endsAt);
-        this.update();
       }
     }
 
@@ -99,7 +94,6 @@ export class RestTimerService {
   private persist(): void {
     const state: PersistedTimer = {
       durationSeconds: this.duration(),
-      endsAt: this.endsAt(),
     };
     localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(state));
   }

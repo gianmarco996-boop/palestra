@@ -5,11 +5,8 @@ import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { addIcons } from 'ionicons';
 import {
   barbellOutline,
-  calendarOutline,
   clipboardOutline,
-  fitnessOutline,
   homeOutline,
-  settingsOutline,
   trendingUpOutline,
 } from 'ionicons/icons';
 
@@ -18,11 +15,8 @@ import { AppComponent } from './app/app.component';
 
 addIcons({
   'barbell-outline': barbellOutline,
-  'calendar-outline': calendarOutline,
   'clipboard-outline': clipboardOutline,
-  'fitness-outline': fitnessOutline,
   'home-outline': homeOutline,
-  'settings-outline': settingsOutline,
   'trending-up-outline': trendingUpOutline,
 });
 
